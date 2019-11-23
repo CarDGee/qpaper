@@ -27,6 +27,14 @@ def _load_image(image_path):
         image, _ = cairocffi.pixbuf.decode_to_image_surface(f.read())
     return image
 
+def _hex_to_decimal(colour):
+    """
+    Get a (R, G, B) tuple from a #RRGGBB hex colour code.
+    """
+    if colour[0] == '#':
+        colour = colour[1:]
+    return [float.fromhex(i + j) for i, j in zip(colour[0::2], colour[1::2])]
+
 
 class Painter:
     """
@@ -42,25 +50,39 @@ class Painter:
 
         self.screens = self.conn.get_setup().roots
         self.conn.core.SetCloseDownMode(xcffib.xproto.CloseDown.RetainPermanent)
+        self._image = None
+        self._option = None
+        self._colour = None
 
-    def paint_all(self, image_path):
+    def paint_all(self, image=None, colour=None, option=None):
         """
         Paint wallpaper on all screens.
         """
-        image = _load_image(image_path)
-        for screen in self.screens:
-            self._paint(screen, image)
+        if image:
+            self._image = _load_image(image)
+        elif colour:
+            self._colour = _hex_to_decimal(colour)
 
-    def paint_screen(self, index, image_path):
+        if option:
+            self._option = option
+
+        for screen in self.screens:
+            self._paint(screen)
+
+    def paint_screen(self, index, image=None, colour=None, option=None):
         """
         Paint wallpaper on single screen.
         """
-        image = _load_image(image_path)
-        self._paint(self.screens[index], image)
+        if image:
+            self._image = _load_image(image)
+        elif colour:
+            self._colour = _hex_to_decimal(colour)
 
-    def _paint(self, screen, image):
+        self._paint(self.screens[index])
+
+    def _paint(self, screen):
         """
-        This function does the heavy lifting.
+        Render the specified image or colour onto a screen.
         """
         pixmap = self.conn.generate_id()
         self.conn.core.CreatePixmap(
@@ -82,7 +104,10 @@ class Painter:
 
         context = cairocffi.Context(surface)
         with context:
-            context.set_source_surface(image)
+            if self._image:
+                self._context_configure_source(context, screen)
+            elif colour:
+                context.set_source_rgba(*colour)
             context.paint()
 
         self.conn.core.ChangeProperty(
@@ -107,3 +132,35 @@ class Painter:
             0, screen.root, 0, 0, screen.width_in_pixels, screen.height_in_pixels
         )
         self.conn.flush()
+        self.conn.disconnect()
+
+    def _context_configure_source(self, context, screen):
+        """
+        Prepare image for painting.
+        """
+        image = self._image
+
+        if self._option == 'fill':
+            image_w = image.get_width()
+            image_h = image.get_height()
+            screen_w = screen.width_in_pixels
+            screen_h = screen.height_in_pixels
+            width_ratio = screen_w / image_w
+            if width_ratio * image_h >= screen_h:
+                context.scale(sx=width_ratio)
+                context.translate(0, (image_h - screen_h) / 2)
+            else:
+                height_ratio = screen_h / image_h
+                context.translate(
+                    - (image_w * height_ratio - screen_w) // 2,
+                    0
+                )
+                context.scale(sx=height_ratio)
+
+        elif self._option == 'stretch':
+            context.scale(
+                sx=screen.width_in_pixels / image.get_width(),
+                sy=screen.height_in_pixels / image.get_height(),
+            )
+
+        context.set_source_surface(image)
