@@ -4,7 +4,7 @@ qpaper - Qtile extension to set X wallpaper.
 
 How to use:
 
-    painter = Painter(os.environ.get("DISPLAY"))    # initialise painter
+    painter = Painter(display=os.environ.get("DISPLAY"))
     painter.paint_all(image_path)                   # paint all screens
     painter.paint_screen(0, image_path)             # paint first screen
     painter.paint_screen(1, image_path)             # paint second screen
@@ -32,8 +32,14 @@ class Painter:
     """
     Interface for painting the X wallpaper.
     """
-    def __init__(self, display):
-        self.conn = xcffib.connect(display=display)
+    def __init__(self, display=None, conn=None):
+        if conn:
+            self.conn = conn
+        elif display:
+            self.conn = xcffib.connect(display=display)
+        else:
+            SystemError('Painter requires either a display or a connection')
+
         self.screens = self.conn.get_setup().roots
         self.conn.core.SetCloseDownMode(xcffib.xproto.CloseDown.RetainPermanent)
 
