@@ -14,7 +14,6 @@ How to use:
 
 import cairocffi
 import cairocffi.pixbuf
-import cairocffi.xcb
 import xcffib
 import xcffib.xproto
 
@@ -23,9 +22,10 @@ def _load_image(image_path):
     """
     Load image from file.
     """
-    with open(image_path, 'rb') as f:
-        image, _ = cairocffi.pixbuf.decode_to_image_surface(f.read())
+    with open(image_path, 'rb') as fd:
+        image, _ = cairocffi.pixbuf.decode_to_image_surface(fd.read())
     return image
+
 
 def _hex_to_decimal(colour):
     """
@@ -44,7 +44,7 @@ class Painter:
         if conn:
             self.conn = conn
         elif display:
-            self.conn = xcffib.connect(display=display)
+            self.conn = xcffib.Connection(display=display)
         else:
             SystemError('Painter requires either a display or a connection')
 
@@ -78,6 +78,9 @@ class Painter:
         elif colour:
             self._colour = _hex_to_decimal(colour)
 
+        if option:
+            self._option = option
+
         self._paint(self.screens[index])
 
     def _paint(self, screen):
@@ -106,8 +109,8 @@ class Painter:
         with context:
             if self._image:
                 self._context_configure_source(context, screen)
-            elif colour:
-                context.set_source_rgba(*colour)
+            elif self._colour:
+                context.set_source_rgba(*self._colour)
             context.paint()
 
         self.conn.core.ChangeProperty(
@@ -132,7 +135,6 @@ class Painter:
             0, screen.root, 0, 0, screen.width_in_pixels, screen.height_in_pixels
         )
         self.conn.flush()
-        self.conn.disconnect()
 
     def _context_configure_source(self, context, screen):
         """
@@ -164,3 +166,9 @@ class Painter:
             )
 
         context.set_source_surface(image)
+
+    def __del__(self):
+        """
+        Close the X connection after use.
+        """
+        self.conn.disconnect()

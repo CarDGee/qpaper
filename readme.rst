@@ -21,8 +21,8 @@ take optional these keyword args:
  - colour (:code:`str`) : hex code to simply set a colour instead of an image
  - option (:code:`str`) : one of 'fill' or 'stretch'
 
-:code:`Painter.paint_screen` should also be passed an int to index the target
-screen.
+:code:`Painter.paint_screen` should also be passed an :code:`int` to index the
+target screen.
 
 Example
 ```````
