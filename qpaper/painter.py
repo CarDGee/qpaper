@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 """
 qpaper - Qtile extension to set X wallpaper.
 

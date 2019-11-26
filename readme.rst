@@ -1,11 +1,11 @@
 qpaper
 ======
 
-Pure Python wallpaper-setter for X11.
+Python wallpaper-setter for X11.
 
 This was originally written as an extension for the Qtile_ window manager
-(hence the name qpaper), though it works as a standalone program. It requires
-the same dependencies as Qtile, i.e. cairocffi_ and xcffib_.
+(hence the name qpaper), though it works for X11 in general. It requires the
+same dependencies as Qtile, i.e. cairocffi_ and xcffib_.
 
 
 Usage
@@ -23,6 +23,18 @@ take optional these keyword args:
 
 :code:`Painter.paint_screen` should also be passed an :code:`int` to index the
 target screen.
+
+
+Script
+``````
+
+Installation via setup.py also installs a script named :code:`qpaper` that can
+be used directly:
+
+.. code-block:: bash
+
+    qpaper /path/to/wallpaper/image.png --option fill
+
 
 Example
 ```````
